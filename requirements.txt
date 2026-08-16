@@ -1,0 +1,10 @@
+neo4j
+requests
+transformers
+torch
+sentencepiece
+pymupdf
+pytesseract
+pillow
+pandas
+streamlit
