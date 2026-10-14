@@ -1,3 +1,4 @@
+import os
 """
 risk_classifier.py — Модуль Б: гібридний класифікатор корупційних ризиків
 ══════════════════════════════════════════════════════════════════════
@@ -28,7 +29,7 @@ import time
 
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 TARGET_EDRPOU  = "24604168"
 
 THRESHOLD_HIGH   = 1_000_000
@@ -46,7 +47,12 @@ UPDATE_QUERY = """
 MATCH (t:Tender {tender_id: $tender_id})
 SET t.risk_category = $risk_category,
     t.risk_score    = $risk_score,
-    t.risk_level    = $risk_level
+    t.risk_level    = $risk_level,
+    t.risk_base_score = $base_score,
+    t.risk_nlp_adjustment = $nlp_delta,
+    t.risk_nlp_status = $nlp_status,
+    t.risk_nlp_confidence = $nlp_confidence,
+    t.risk_algorithm_version = $algorithm_version
 """
 
 NLP_LABELS = [
@@ -74,15 +80,15 @@ def rule_based_risk(status: str, budget: float) -> tuple[str, float, str]:
     return "легітимна закупівля без ознак ризику", 0.10, "🟢 НИЗЬКИЙ"
 
 
-def nlp_adjustment(clf, title: str, base_score: float) -> tuple[float, str]:
+def nlp_adjustment(clf, title: str, base_score: float) -> tuple[float, str, float]:
     """NLP-коригування оцінки для тендерів з великим бюджетом."""
     if not clf or not title:
-        return base_score, ""
+        return base_score, "", 0.0
     try:
         r = clf(title, candidate_labels=NLP_LABELS,
                 hypothesis_template="Цей тендер має: {}.")
         if r["labels"][0] == NLP_LABELS[0]:
-            return min(base_score + 0.10, 1.0), " + підозріла назва"
+            return min(base_score + 0.10, 1.0), " + підозріла назва", float(r["scores"][0])
     except Exception:
         pass
     return base_score, ""
@@ -144,16 +150,25 @@ def main():
 
             category, score, level = rule_based_risk(status, budget)
 
+            base_score = score
             note = ""
+            confidence = None
+            nlp_status = "not_applicable" if budget <= NLP_THRESHOLD else "unavailable"
             if clf and budget > NLP_THRESHOLD:
-                score, note = nlp_adjustment(clf, title, score)
+                score, note, confidence = nlp_adjustment(clf, title, score)
+                nlp_status = "applied" if confidence else "failed_or_no_title"
                 if note and score >= 0.90:
                     level = "🔴 КРИТИЧНИЙ"
 
             session.run(UPDATE_QUERY, tender_id=tid,
                         risk_category=category,
                         risk_score=round(score, 2),
-                        risk_level=level)
+                        risk_level=level,
+                        base_score=base_score,
+                        nlp_delta=round(score - base_score, 2),
+                        nlp_status=nlp_status,
+                        nlp_confidence=confidence,
+                        algorithm_version="thesis-alignment-2026-draft")
 
             results.append({"id": tid, "title": title, "budget": budget,
                             "status": status, "category": category,
