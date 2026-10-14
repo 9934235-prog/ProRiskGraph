@@ -1,3 +1,4 @@
+import os
 """
 detect_splitting.py  —  Виявлення штучного дроблення закупівель
 ══════════════════════════════════════════════════════════════════════
@@ -17,7 +18,7 @@ detect_splitting.py  —  Виявлення штучного дроблення
   Якщо один замовник протягом одного року уклав КІЛЬКА окремих прямих
   договорів (procedure = "закупівля без використання електронної системи")
   у тій самій товарній категорії (код ДК 021/CPV), і СУМА цих договорів
-  перевищує законний поріг — це формальна ознака штучного дроблення,
+  перевищує орієнтовний поріг — це сигнал для документальної перевірки,
   навіть якщо кожен договір окремо виглядає "малим і безпечним".
 
 Запуск:
@@ -29,7 +30,7 @@ import re
 
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 
 # Законодавчі пороги (п. 11 Особливостей №1178)
 THRESHOLD_GOODS_SERVICES = 100_000   # товари та послуги (крім поточного ремонту)
@@ -41,7 +42,7 @@ THRESHOLD_WORKS          = 1_500_000  # роботи
 # бо в title зустрічаються різні типи лапок — типографські й прямі)
 DETECT_SPLITTING_QUERY = """
 MATCH (org:Organization)-[:ANNOUNCED]->(t)
-WHERE (t:LowRisk OR t:MediumRisk OR t:HighRisk)
+WHERE t:Tender
   AND t.procedure = 'закупівля без використання електронної системи'
 RETURN org.name AS organization, org.edrpou AS edrpou,
        t.tender_id AS tender_id, t.title AS title, t.budget AS budget
@@ -51,7 +52,7 @@ RETURN org.name AS organization, org.edrpou AS edrpou,
 def classify_threshold(title: str) -> int:
     """Дуже спрощене визначення застосовного порогу за ключовими словами в назві."""
     title_lower = (title or "").lower()
-    if "поточний ремонт" in title_lower or "ремонт" in title_lower:
+    if "поточний ремонт" in title_lower:
         return THRESHOLD_REPAIR
     if any(w in title_lower for w in ["роботи", "будівництво", "реконструкція", "реставрація"]):
         return THRESHOLD_WORKS
@@ -119,7 +120,7 @@ def main():
         print("    в межах одного календарного року.")
         print("    Це очікувано на малій тестовій вибірці (32 тендери) — для")
         print("    надійного виявлення реальних випадків дроблення потрібне")
-        print("    повне довантаження procedure для всіх 1481 тендерів.")
+        print("    повне довантаження procedure для всіх 1501 записів.")
     else:
         print("═" * 70)
         for f in flagged:
