@@ -43,13 +43,13 @@ from save_to_graph import save_entities
 
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 
 TESSERACT_CMD  = r"D:\Tesseract-OCR\tesseract.exe"
 OCR_LANG       = "ukr+rus"
 OCR_DPI        = 300
 
-DOCUMENTS_FOLDER = r"D:\АЛЬОНА\УНІВЕР\ІІ_Семестр\Нова папка\documents"
+DOCUMENTS_FOLDER = os.getenv("DOCUMENTS_FOLDER", "documents")
 
 NER_MODEL      = "Babelscape/wikineural-multilingual-ner"
 NER_TEXT_LIMIT = 512  # обмеження довжини тексту, що подається в модель
