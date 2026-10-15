@@ -20,6 +20,7 @@ prozorro_to_neo4j.py — Модуль Б: завантаження тендер�
   python prozorro_to_neo4j.py
 """
 
+import os
 import requests
 import json
 import time
@@ -29,7 +30,7 @@ from neo4j import GraphDatabase
 
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 
 TARGET_EDRPOU  = "24604168"
 TARGET_NAME    = "Кам'янська міська рада"

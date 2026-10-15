@@ -11,11 +11,9 @@ add_winners.py  —  Довантаження переможців тендер�
     - зв'язок (Company)-[:HAS_HQ_AT]->(Address)
 
 Важливо щодо структури даних:
-  У цій базі тендери записані БЕЗ лейбла Tender — натомість кожен вузол
-  одразу отримав лейбл рівня ризику (LowRisk / MediumRisk / HighRisk),
-  а властивість з ідентифікатором тендера зберігається як tender_id.
-  Тому всі запити шукають вузол за умовою
-  (t:LowRisk OR t:MediumRisk OR t:HighRisk), а не за (t:Tender).
+  Поточний завантажувач Prozorro створює вузли :Tender.
+  Для сумісності з історичними графами також підтримуються вузли
+  :LowRisk, :MediumRisk і :HighRisk, якщо вони мають tender_id.
 
 Чому окремий запит, а не з тих самих даних:
   /api/search/tenders (який вже використовує prozorro_to_neo4j_v8.py) не містить
@@ -26,6 +24,7 @@ add_winners.py  —  Довантаження переможців тендер�
   python add_winners.py
 """
 
+import os
 import requests
 import time
 from neo4j import GraphDatabase
@@ -34,7 +33,7 @@ from neo4j import GraphDatabase
 
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 
 API_BASE = "https://public-api.prozorro.gov.ua/api/2.5"
 
@@ -48,19 +47,18 @@ LIMIT = 50
 
 # ─── CYPHER ───────────────────────────────────────────────────────────────────
 
-# Беремо ID всіх тендерів, які вже є в базі і ще не мають переможця.
-# У цій базі тендери записані без лейбла Tender — замість нього
-# вузол одразу отримав лейбл рівня ризику (LowRisk / MediumRisk / HighRisk).
+# Підтримуємо актуальні вузли :Tender та історичні лейбли ризику.
 GET_TENDERS_WITHOUT_WINNER = """
 MATCH (t)
-WHERE (t:LowRisk OR t:MediumRisk OR t:HighRisk)
+WHERE (t:Tender OR t:LowRisk OR t:MediumRisk OR t:HighRisk)
+  AND t.tender_id IS NOT NULL
   AND NOT (t)-[:WINNER_IS]->(:Company)
 RETURN t.tender_id AS tender_id
 """
 
 SAVE_WINNER_QUERY = """
 MATCH (t)
-WHERE (t:LowRisk OR t:MediumRisk OR t:HighRisk) AND t.tender_id = $tender_id
+WHERE (t:Tender OR t:LowRisk OR t:MediumRisk OR t:HighRisk) AND t.tender_id = $tender_id
 MATCH (buyer:Organization)-[:ANNOUNCED]->(t)
 MERGE (c:Company {edrpou: $company_edrpou})
   SET c.name = $company_name

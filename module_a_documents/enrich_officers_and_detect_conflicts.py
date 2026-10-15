@@ -17,6 +17,7 @@ enrich_officers_and_detect_conflicts.py  —  Доопрацювання Мод�
   python enrich_officers_and_detect_conflicts.py
 """
 
+import os
 import pandas as pd
 from neo4j import GraphDatabase
 
@@ -25,7 +26,7 @@ from neo4j import GraphDatabase
 FILE_PATH      = "officers.csv"
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 
 # ─── CYPHER ───────────────────────────────────────────────────────────────────
 
