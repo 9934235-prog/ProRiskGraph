@@ -16,13 +16,14 @@ dashboard_viewer.py — Мінімальна панель перегляду р�
   (браузер сам відкриє http://localhost:8501)
 """
 
+import os
 import streamlit as st
 import pandas as pd
 from neo4j import GraphDatabase
 
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 
 st.set_page_config(page_title="ProRiskGraph", layout="wide")
 st.title("ProRiskGraph — панель перегляду результатів")
