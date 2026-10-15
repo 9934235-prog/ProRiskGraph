@@ -26,6 +26,7 @@ add_winners.py  —  Довантаження переможців тендер�
   python add_winners.py
 """
 
+import os
 import requests
 import time
 from neo4j import GraphDatabase
@@ -34,7 +35,7 @@ from neo4j import GraphDatabase
 
 NEO4J_URI      = "bolt://localhost:7687"
 NEO4J_USER     = "neo4j"
-NEO4J_PASSWORD = "12password"
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 
 API_BASE = "https://public-api.prozorro.gov.ua/api/2.5"
 
