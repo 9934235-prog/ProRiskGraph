@@ -91,7 +91,7 @@ def nlp_adjustment(clf, title: str, base_score: float) -> tuple[float, str, floa
             return min(base_score + 0.10, 1.0), " + підозріла назва", float(r["scores"][0])
     except Exception:
         pass
-    return base_score, ""
+    return base_score, "", None
 
 
 def progress(current: int, total: int, width: int = 45) -> str:
